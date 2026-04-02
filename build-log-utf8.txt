@@ -1,0 +1,262 @@
+﻿
+> doodlesync-app@0.1.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 30 modules transformed.
+node.exe : [31mx[39m Build 
+failed in 335ms
+At C:\Program 
+Files\nodejs\npm.ps1:29 
+char:3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: ([31mx  
+  [39m Build failed in 335   
+ ms:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+[31merror during build:
+[31m[vite:esbuild] 
+Transform failed with 11 
+errors:
+C:/Users/shrey/Downloads/Dood
+leSyncApp/src/icons/index.jsx
+:22:2: ERROR: The symbol 
+"SelectIcon" has already 
+been declared
+C:/Users/shrey/Downloads/Dood
+leSyncApp/src/icons/index.jsx
+:22:14: ERROR: The symbol 
+"HandIcon" has already been 
+declared
+C:/Users/shrey/Downloads/Dood
+leSyncApp/src/icons/index.jsx
+:22:24: ERROR: The symbol 
+"PenIcon" has already been 
+declared
+C:/Users/shrey/Downloads/Dood
+leSyncApp/src/icons/index.jsx
+:22:33: ERROR: The symbol 
+"PencilSketchIcon" has 
+already been declared
+C:/Users/shrey/Downloads/Dood
+leSyncApp/src/icons/index.jsx
+:23:2: ERROR: The symbol 
+"ShapeIcon" has already been 
+declared
+...[31m
+file: [36mC:/Users/shrey/Dow
+nloads/DoodleSyncApp/src/icon
+s/index.jsx:22:2[31m
+[33m
+[33mThe symbol "SelectIcon" 
+has already been 
+declared[33m
+20 |  
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+   |    ^
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+
+[33mThe symbol "HandIcon" 
+has already been 
+declared[33m
+20 |  
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+   |                ^
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+
+[33mThe symbol "PenIcon" 
+has already been 
+declared[33m
+20 |  
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+   |                         
+ ^
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+
+[33mThe symbol 
+"PencilSketchIcon" has 
+already been declared[33m
+20 |  
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+   |                         
+          ^
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+
+[33mThe symbol "ShapeIcon" 
+has already been 
+declared[33m
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+   |    ^
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+25 |  } from "./index.jsx";
+
+[33mThe symbol "StickyIcon" 
+has already been 
+declared[33m
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+   |               ^
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+25 |  } from "./index.jsx";
+
+[33mThe symbol "EraserIcon" 
+has already been 
+declared[33m
+21 |  import {
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+   |                         
+  ^
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+25 |  } from "./index.jsx";
+
+[33mThe symbol "RectIcon" 
+has already been 
+declared[33m
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+   |    ^
+25 |  } from "./index.jsx";
+26 |  
+
+[33mThe symbol 
+"EllipseIcon" has already 
+been declared[33m
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+   |              ^
+25 |  } from "./index.jsx";
+26 |  
+
+[33mThe symbol "LineIcon" 
+has already been 
+declared[33m
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+   |                         
+  ^
+25 |  } from "./index.jsx";
+26 |  
+
+[33mThe symbol "ArrowIcon" 
+has already been 
+declared[33m
+22 |    SelectIcon, 
+HandIcon, PenIcon, 
+PencilSketchIcon,
+23 |    ShapeIcon, 
+StickyIcon, EraserIcon,
+24 |    RectIcon, 
+EllipseIcon, LineIcon, 
+ArrowIcon,
+   |                         
+            ^
+25 |  } from "./index.jsx";
+26 |  
+[31m
+    at failureErrorWithLog (C
+:\Users\shrey\Downloads\Doodl
+eSyncApp\node_modules\esbuild
+\lib\main.js:1472:15)
+    at C:\Users\shrey\Downloa
+ds\DoodleSyncApp\node_modules
+\esbuild\lib\main.js:755:50
+    at 
+responseCallbacks.<computed> 
+(C:\Users\shrey\Downloads\Doo
+dleSyncApp\node_modules\esbui
+ld\lib\main.js:622:9)
+    at handleIncomingPacket (
+C:\Users\shrey\Downloads\Dood
+leSyncApp\node_modules\esbuil
+d\lib\main.js:677:12)
+    at Socket.readFromStdout 
+(C:\Users\shrey\Downloads\Doo
+dleSyncApp\node_modules\esbui
+ld\lib\main.js:600:7)
+    at Socket.emit 
+(node:events:518:28)
+    at addChunk (node:interna
+l/streams/readable:561:12)
+    at 
+readableAddChunkPushByteMode 
+(node:internal/streams/readab
+le:512:3)
+    at Readable.push (node:in
+ternal/streams/readable:392:5
+)
+    at Pipe.onStreamRead (nod
+e:internal/stream_base_common
+s:189:23)[39m
