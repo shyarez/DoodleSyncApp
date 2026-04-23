@@ -78,27 +78,31 @@ src/
 
 ---
 
-## 🛠 Tech Stack
+---
 
-- React (Frontend UI)
-- Canvas API (Drawing engine)
-- Socket.IO (Real-time sync)
-- Node.js + Express (Backend server)
+## ✧ Tech Stack
+
+* ✧ **Frontend:** React
+* ✧ **Engine:** HTML5 Canvas API
+* ✧ **Real-time:** Socket.IO
+* ✧ **Backend:** Node.js + Express
 
 ---
 
 ## ✧ Notes
-✧ Designed for low-latency collaborative drawing
-✧ Optimized for continuous stroke streaming
-✧ Built to handle multiple users without canvas conflicts
+
+* ✧ Designed for low-latency collaborative drawing
+* ✧ Optimized for continuous stroke streaming
+* ✧ Built to handle multiple users without canvas conflicts
 
 ---
 
 ## ✧ Future Roadmap
-✧ Pressure-sensitive stylus support
-✧ Playback system for drawing history
-✧ Layer management system
-✧ Persistent cloud storage and user authentication
-✧ Enhanced mobile touch gesture optimization
+
+* ✧ Pressure-sensitive stylus support
+* ✧ Playback system for drawing history
+* ✧ Layer management system
+* ✧ Persistent cloud storage and user authentication
+* ✧ Enhanced mobile touch gesture optimization
 
 ---
