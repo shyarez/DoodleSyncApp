@@ -73,7 +73,7 @@ export const StickyNote = ({ note, onMove, onResize, onChangeColor, onDelete, on
         <div onMouseDown={onHeaderDown} style={{ background:"rgba(0,0,0,0.07)", padding:"5px 8px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:dragging?"grabbing":"grab", flexShrink:0 }}>
           <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.08em", color:"rgba(0,0,0,0.4)", textTransform:"uppercase", fontFamily:"'Poppins',system-ui" }}>✎ Note</span>
           <div data-no-drag="1" style={{display:"flex",gap:3}}>
-            <button onClick={()=>setShowPalette(p=>!p)} style={{border:"none",background:"none",cursor:"pointer",width:14,height:14,borderRadius:"50%",background:note.color,border:"1.5px solid rgba(0,0,0,0.2)"}}/>
+            <button onClick={()=>setShowPalette(p=>!p)} style={{cursor:"pointer",width:14,height:14,borderRadius:"50%",background:note.color,border:"1.5px solid rgba(0,0,0,0.2)"}}/>
             <button onClick={()=>onDelete(note.id)} style={{border:"none",background:"none",cursor:"pointer",fontSize:12,color:"rgba(0,0,0,0.4)",lineHeight:1,padding:"0 1px"}}>×</button>
           </div>
         </div>
@@ -85,13 +85,19 @@ export const StickyNote = ({ note, onMove, onResize, onChangeColor, onDelete, on
             ))}
           </div>
         )}
-        <div ref={textRef} contentEditable suppressContentEditableWarning
-          onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
-          onInput={e=>onTextChange(note.id, e.currentTarget.textContent)}
-          style={{ flex:1, padding:"8px 10px", outline:"none", fontSize:14, color:"rgba(0,0,0,0.72)", fontFamily:"'Poppins',system-ui", lineHeight:1.55, wordBreak:"break-word", overflowY:"auto", cursor:"text" }}
-          dangerouslySetInnerHTML={undefined}>
-          {note.text || ""}
-        </div>
+        <div
+          ref={textRef}
+          contentEditable
+          suppressContentEditableWarning
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onInput={(e) => onTextChange(note.id, e.currentTarget.innerText)}
+          style={{ flex: 1, padding: "8px 10px", outline: "none", fontSize: 14, color: "rgba(0,0,0,0.72)", fontFamily: "'Poppins',system-ui", lineHeight: 1.55, wordBreak: "break-word", overflowY: "auto", cursor: "text" }}
+          // Focus-guarded Rendering:
+          // We only update innerHTML from props if we are NOT focused (observing)
+          // or if the note is fresh (just created).
+          dangerouslySetInnerHTML={(!focused || note.fresh) ? { __html: note.text || "" } : undefined}
+        />
       </div>
     </div>
   );

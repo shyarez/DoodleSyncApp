@@ -120,25 +120,44 @@ export const IntroScreen = ({ onDone }) => {
         <div style={{width:4,height:0,background:"linear-gradient(#e879a0,rgba(232,121,160,0))",borderRadius:2,margin:"0 auto",animation:"paintDrip 2.2s 0.4s ease-in both"}}/>
       </div>
 
-      {/* Main text */}
+      {/* Main text - SVG stroke animation */}
       <div style={{position:"relative",textAlign:"center",zIndex:2,padding:"0 20px"}}>
-        <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:0,marginBottom:4}}>
-          {chars.map((ch, i) => (
-            <span key={i} style={{
-              display:"inline-block",
-              fontFamily:"'Architects Daughter',cursive",
-              fontSize:"clamp(28px,5.5vw,62px)",
-              fontWeight:400,
-              background:"linear-gradient(135deg,#e879a0 0%,#8b5cf6 50%,#38bdf8 100%)",
-              WebkitBackgroundClip:"text",
-              WebkitTextFillColor:"transparent",
-              whiteSpace: ch === " " ? "pre" : "normal",
-              opacity: 0,
-              animation: `introTextReveal 4.2s ${0.3 + i * 0.035}s cubic-bezier(.4,0,.2,1) both, bounce 0.8s ${0.3 + i * 0.035}s ease both`,
-              filter:"drop-shadow(0 2px 6px rgba(139,92,246,0.25))",
-            }}>{ch === " " ? "\u00A0" : ch}</span>
-          ))}
-        </div>
+        <svg width="100%" height="90" viewBox="0 0 500 90" style={{ maxWidth: "600px", margin: "0 auto", overflow: "visible" }}>
+          <defs>
+            <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#e879a0" />
+              <stop offset="50%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#38bdf8" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <style>{`
+              @keyframes drawText {
+                0% { stroke-dashoffset: 1200; fill-opacity: 0; }
+                75% { stroke-dashoffset: 0; fill-opacity: 0; }
+                100% { stroke-dashoffset: 0; fill-opacity: 1; }
+              }
+              .animated-text {
+                font-family: 'Nerko One', cursive;
+                font-size: 72px;
+                stroke: url(#textGrad);
+                stroke-width: 2px;
+                fill: url(#textGrad);
+                stroke-dasharray: 1200;
+                animation: drawText 2.5s ease-out forwards;
+                transform-origin: center;
+              }
+            `}</style>
+          </defs>
+          <text x="50%" y="60" textAnchor="middle" className="animated-text" filter="url(#glow)">
+            DoodleSync
+          </text>
+        </svg>
         <p style={{
           fontFamily:"'Montserrat',system-ui", fontSize:"clamp(12px,1.8vw,15px)", fontWeight:500,
           color:"var(--text2)", marginTop:8, letterSpacing:"0.04em",

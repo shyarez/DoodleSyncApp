@@ -1,9 +1,11 @@
 export const Fonts = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=Nerko+One&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { overflow: hidden; height: 100%; font-family: 'Montserrat', system-ui, sans-serif; }
+    
     :root {
+      --font-primary: 'Nerko One', cursive;
+      --font-ui: 'Poppins', system-ui, sans-serif;
       --bg: #f8f6ff; --bg2: #f0ecfc; --surface: rgba(255,255,255,0.92);
       --border: rgba(180,160,220,0.25); --text: #2d2150; --text2: #6b5f8a;
       --accent: #8b5cf6; --accent2: #e879a0; --accent3: #38bdf8;
@@ -19,6 +21,7 @@ export const Fonts = () => (
       --dot: rgba(90,90,100,0.08);
       --canvas-bg: #111111;
     }
+    html, body { overflow: hidden; height: 100%; font-family: var(--font-primary); }
     * { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease; }
     canvas, input[type=range], button { transition: none !important; }
     @keyframes floatUp { 0%,100%{transform:translateY(0) rotate(var(--rot,0deg));} 50%{transform:translateY(-18px) rotate(calc(var(--rot,0deg)+3deg));} }

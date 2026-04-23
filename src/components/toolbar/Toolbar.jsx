@@ -78,7 +78,7 @@ export const Toolbar = ({ activeTool, setActiveTool, color, setColor, paletteMod
         display: "flex", alignItems: "center", gap: 2, padding: "5px 8px", borderRadius: 14,
         background: dark ? "#141414" : "#ffffff", border: "1px solid var(--border)",
         boxShadow: "0 4px 24px var(--shadow)", height: 46,
-        isolation: "isolate",
+        isolation: "isolate", fontFamily: "var(--font-ui)",
     }}>
       {navTools.map(t => (
         <div key={t.id} style={{ position:"relative" }}>{toolBtn(t)}</div>

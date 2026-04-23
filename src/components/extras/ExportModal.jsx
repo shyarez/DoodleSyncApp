@@ -13,8 +13,12 @@ export const ExportModal = ({ canvasRef, onClose }) => {
     const tmp = document.createElement("canvas");
     tmp.width = src.width; tmp.height = src.height;
     const ctx = tmp.getContext("2d");
-    if (bg !== "transparent") {
-      ctx.fillStyle = bg === "white" ? "#ffffff" : "#1a1a2e";
+    let actualBg = bg;
+    if (fmt === "jpg" && bg === "transparent") actualBg = "white";
+    
+    if (actualBg !== "transparent" || fmt === "jpg") {
+      ctx.fillStyle = actualBg === "white" ? "#ffffff" : "#1a1a2e";
+      if (fmt === "jpg" && bg === "transparent") ctx.fillStyle = "#ffffff"; // extra safety
       ctx.fillRect(0, 0, tmp.width, tmp.height);
     }
     ctx.drawImage(src, 0, 0);
@@ -68,6 +72,12 @@ export const ExportModal = ({ canvasRef, onClose }) => {
             </button>
           ))}
         </div>
+        
+        {fmt === "jpg" && bg === "transparent" && (
+          <div style={{padding:"6px",borderRadius:6,background:"rgba(239,68,68,0.1)",color:"#ef4444",fontSize:10,fontWeight:600,textAlign:"center",marginBottom:14,marginTop:-8}}>
+            White background applied (JPEG doesn't support transparency)
+          </div>
+        )}
 
         {/* Quality (JPEG only) */}
         {fmt === "jpg" && (
