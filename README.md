@@ -1,81 +1,63 @@
-# 🎨 DoodleSyncApp
+# ✧ DoodleSyncApp
 
-A real-time collaborative drawing canvas with live multi-user syncing, sticky notes, and multi-tool sketching — built for smooth, shared creativity.
-
----
-
-## 🚀 Features
-
-- 👥 Real-time multi-user collaboration (Socket.IO)
-- ✏️ Multiple drawing tools:
-  - Pen
-  - Pencil
-  - Shapes (rect, ellipse, line, arrow)
-  - Eraser (freehand / lasso / rectangle)
-- 🗒️ Sticky notes with live sync (text, color, movement)
-- ↩️ Undo / Redo support
-- 🧹 Canvas clearing (user-scoped control)
-- 🔄 Live stroke streaming
-- 🎯 Zoom + Pan support
-- 🧠 Optimized canvas rendering for smooth drawing
-- 🎨 Custom stroke styles, opacity, fill support
+A real-time collaborative drawing canvas featuring live multi-user synchronization, sticky notes, and multi-tool sketching — engineered for low-latency, shared creativity.
 
 ---
 
-## 🧠 Architecture Overview
+## ✧ Features
 
-The project is split into:
-
-- **Frontend (React)**
-- **Backend (Node.js + Socket.IO)**
-- **Shared real-time event system**
-
-Each stroke is streamed incrementally with `strokeId` tracking for smooth collaborative rendering.
+* **Real-time Collaboration:** Multi-user synchronization via Socket.IO.
+* **Drawing Suite:** Pen, Pencil, and geometric Shapes (Rectangle, Ellipse, Line, Arrow).
+* **Smart Eraser:** Freehand, Lasso, and Rectangular clearing modes.
+* **Interactive Elements:** Sticky notes with live sync for text, color, and positioning.
+* **Workflow Tools:** Full Undo/Redo support, Canvas clearing, and Export functionality.
+* **Navigation:** Integrated Zoom and Pan support for large-scale sketching.
+* **Optimization:** Stroke streaming and high-performance Canvas API rendering.
 
 ---
 
-## 📁 Project Structure
+## ✧ Architecture Overview
+
+The system architecture facilitates continuous data flow between clients:
+
+* **Frontend:** React-based UI with custom Canvas API integration.
+* **Backend:** Node.js environment utilizing Express and Socket.IO.
+* **Event System:** Incremental `strokeId` tracking ensures smooth collaborative rendering without state conflicts.
+
+---
+
+## ✧ Project Structure
+
+```text
 src/
-├── App.jsx                          → Root application entry
-│
-├── data/
-│   └── constants.js                 
-│
-├── icons/
-│   └── index.jsx               
-│
-├── components/
-│
-│   ├── ui/                          
-│   │   ├── Btn.jsx
-│   │   ├── Avatar.jsx
-│   │   └── Divider.jsx
-│   │
-│   ├── canvas/                     
-│   │   ├── CanvasArea.jsx           
-│   │   ├── StickyNote.jsx           
-│   │   ├── EmptyState.jsx          
-│   │   └── ZoomControls.jsx         
-│   │
-│   ├── layout/                     
-│   │   ├── Navbar.jsx
-│   │   ├── NavBtn.jsx
-│   │   └── HamDrawer.jsx
-│   │
-│   ├── toolbar/                     
-│   │   ├── Toolbar.jsx
-│   │   ├── ColorPicker.jsx
-│   │   ├── StrokeMenu.jsx
-│   │   ├── EraserMenu.jsx
-│   │   ├── ShapeDropdown.jsx
-│   │   └── BgPicker.jsx
-│   │
-│   └── extras/                     
-│       ├── Fonts.jsx
-│       ├── ArtDecor.jsx
-│       ├── IntroScreen.jsx
-│       ├── ExportModal.jsx
-│       └── ClearConfirm.jsx
+ ├── App.jsx                ✧ Root application entry
+ │
+ ├── data/
+ │    └── constants.js      ✧ Global configuration
+ │
+ ├── icons/
+ │    └── index.jsx         ✧ Asset library
+ │
+ ├── components/
+ │    ├── ui/               ✧ Atomic UI elements (Buttons, Avatars)
+ │    │
+ │    ├── canvas/           ✧ Drawing engine & canvas logic
+ │    │    ├── CanvasArea.jsx
+ │    │    ├── StickyNote.jsx
+ │    │    └── ZoomControls.jsx
+ │    │
+ │    ├── layout/           ✧ Navigation & structural wrappers
+ │    │    ├── Navbar.jsx
+ │    │    └── HamDrawer.jsx
+ │    │
+ │    ├── toolbar/          ✧ Tool selection & customization menus
+ │    │    ├── ColorPicker.jsx
+ │    │    ├── ShapeDropdown.jsx
+ │    │    └── EraserMenu.jsx
+ │    │
+ │    └── extras/           ✧ Modals, fonts, and decorations
+ │         ├── IntroScreen.jsx
+ │         └── ExportModal.jsx
 
 ## ⌨️ Keyboard Shortcuts
 
@@ -104,7 +86,7 @@ src/
 
 ---
 
-## 💡 Notes
+## Notes
 
 - Designed for low-latency collaborative drawing
 - Optimized for continuous stroke streaming
@@ -121,7 +103,3 @@ src/
 - Mobile touch optimization
 
 ---
-
-## 🧑‍🎨 Built With Love
-
-A chaotic-but-smooth real-time canvas built for creativity, collaboration, and slightly unhinged sketch energy.
