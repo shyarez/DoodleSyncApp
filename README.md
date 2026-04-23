@@ -1,76 +1,127 @@
-# DoodleSyncApp — Component Structure
+# 🎨 DoodleSyncApp
 
-This folder contains the **refactored** version of `DoodleSync.jsx`, split into modular, maintainable files.
+A real-time collaborative drawing canvas with live multi-user syncing, sticky notes, and multi-tool sketching — built for smooth, shared creativity.
 
-## Usage
+---
 
-Import `App.jsx` into your React project as the root component:
+## 🚀 Features
 
-```jsx
-import DoodleSync from "./src/App.jsx";
+- 👥 Real-time multi-user collaboration (Socket.IO)
+- ✏️ Multiple drawing tools:
+  - Pen
+  - Pencil
+  - Shapes (rect, ellipse, line, arrow)
+  - Eraser (freehand / lasso / rectangle)
+- 🗒️ Sticky notes with live sync (text, color, movement)
+- ↩️ Undo / Redo support
+- 🧹 Canvas clearing (user-scoped control)
+- 🔄 Live stroke streaming
+- 🎯 Zoom + Pan support
+- 🧠 Optimized canvas rendering for smooth drawing
+- 🎨 Custom stroke styles, opacity, fill support
 
-function App() {
-  return <DoodleSync />;
-}
-```
+---
 
-## Folder Structure
+## 🧠 Architecture Overview
 
-```
+The project is split into:
+
+- **Frontend (React)**
+- **Backend (Node.js + Socket.IO)**
+- **Shared real-time event system**
+
+Each stroke is streamed incrementally with `strokeId` tracking for smooth collaborative rendering.
+
+---
+
+## 📁 Project Structure
 src/
-├── App.jsx                          ← Root app (assembles everything)
+├── App.jsx                          → Root application entry
 │
 ├── data/
-│   └── constants.js                 ← All constants & data arrays
+│   └── constants.js                 → App constants & configuration
 │
 ├── icons/
-│   └── index.jsx                    ← All SVG icon components + TOOL_ICONS map
+│   └── index.jsx                    → SVG icons + tool mappings
 │
 ├── components/
-│   ├── ui/                          ← Reusable primitive UI
-│   │   ├── Avatar.jsx
+│
+│   ├── ui/                          → Basic reusable UI elements
 │   │   ├── Btn.jsx
+│   │   ├── Avatar.jsx
 │   │   └── Divider.jsx
 │   │
-│   ├── canvas/                      ← Drawing surface & canvas tools
-│   │   ├── CanvasArea.jsx           ← Main drawing engine
-│   │   ├── StickyNote.jsx           ← Draggable/resizable sticky notes
-│   │   ├── EmptyState.jsx           ← Welcome placeholder
-│   │   └── ZoomControls.jsx         ← Zoom in/out + undo/redo bar
+│   ├── canvas/                      → Core drawing system
+│   │   ├── CanvasArea.jsx           → Main canvas engine
+│   │   ├── StickyNote.jsx           → Collaborative sticky notes
+│   │   ├── EmptyState.jsx           → Placeholder screen
+│   │   └── ZoomControls.jsx         → Zoom + undo/redo controls
 │   │
-│   ├── layout/                      ← Navigation & drawers
+│   ├── layout/                      → App structure & navigation
 │   │   ├── Navbar.jsx
 │   │   ├── NavBtn.jsx
-│   │   └── HamDrawer.jsx            ← Hamburger side drawer
+│   │   └── HamDrawer.jsx
 │   │
-│   ├── toolbar/                     ← Tool selection & property menus
-│   │   ├── Toolbar.jsx              ← Main toolbar (composes sub-menus)
+│   ├── toolbar/                     → Drawing tools & settings
+│   │   ├── Toolbar.jsx
 │   │   ├── ColorPicker.jsx
 │   │   ├── StrokeMenu.jsx
 │   │   ├── EraserMenu.jsx
 │   │   ├── ShapeDropdown.jsx
 │   │   └── BgPicker.jsx
 │   │
-│   └── extras/                      ← Overlays & decorative components
-│       ├── Fonts.jsx                ← Global CSS & @imports
-│       ├── ArtDecor.jsx             ← Animated background blobs/brushes
-│       ├── IntroScreen.jsx          ← Animated splash screen
-│       ├── ExportModal.jsx          ← Export canvas as PNG/JPEG
-│       └── ClearConfirm.jsx         ← "Clear canvas?" confirmation modal
-```
+│   └── extras/                      → UI overlays & utilities
+│       ├── Fonts.jsx
+│       ├── ArtDecor.jsx
+│       ├── IntroScreen.jsx
+│       ├── ExportModal.jsx
+│       └── ClearConfirm.jsx
 
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
-| `V` | Select tool |
-| `H` | Pan / Hand |
-| `P` | Pen |
-| `K` | Pencil |
-| `S` | Shape |
-| `N` | Sticky note |
-| `E` | Eraser |
-| `R/O/L/A` | Rect / Ellipse / Line / Arrow |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+E` | Export |
+| V | Select tool |
+| H | Pan tool |
+| P | Pen |
+| K | Pencil |
+| S | Shape tool |
+| N | Sticky note |
+| E | Eraser |
+| R / O / L / A | Rectangle / Ellipse / Line / Arrow |
+| Ctrl + Z | Undo |
+| Ctrl + Y | Redo |
+| Ctrl + E | Export canvas |
+
+---
+
+## 🛠 Tech Stack
+
+- React (Frontend UI)
+- Canvas API (Drawing engine)
+- Socket.IO (Real-time sync)
+- Node.js + Express (Backend server)
+
+---
+
+## 💡 Notes
+
+- Designed for low-latency collaborative drawing
+- Optimized for continuous stroke streaming
+- Built to handle multiple users without canvas conflicts
+
+---
+
+## 🧩 Future Improvements
+
+- Pressure-sensitive pen support
+- Replay drawing history
+- Layer system
+- Cloud save / login system
+- Mobile touch optimization
+
+---
+
+## 🧑‍🎨 Built With Love
+
+A chaotic-but-smooth real-time canvas built for creativity, collaboration, and slightly unhinged sketch energy.
