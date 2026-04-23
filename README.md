@@ -59,6 +59,7 @@ src/
  │         ├── IntroScreen.jsx
  │         └── ExportModal.jsx
 
+```
 ## ⌨️ Keyboard Shortcuts
 
 | Key | Action |
@@ -86,20 +87,18 @@ src/
 
 ---
 
-## Notes
-
-- Designed for low-latency collaborative drawing
-- Optimized for continuous stroke streaming
-- Built to handle multiple users without canvas conflicts
+## ✧ Notes
+✧ Designed for low-latency collaborative drawing
+✧ Optimized for continuous stroke streaming
+✧ Built to handle multiple users without canvas conflicts
 
 ---
 
-## 🧩 Future Improvements
-
-- Pressure-sensitive pen support
-- Replay drawing history
-- Layer system
-- Cloud save / login system
-- Mobile touch optimization
+## ✧ Future Roadmap
+✧ Pressure-sensitive stylus support
+✧ Playback system for drawing history
+✧ Layer management system
+✧ Persistent cloud storage and user authentication
+✧ Enhanced mobile touch gesture optimization
 
 ---
