@@ -39,30 +39,30 @@ src/
 ├── App.jsx                          → Root application entry
 │
 ├── data/
-│   └── constants.js                 → App constants & configuration
+│   └── constants.js                 
 │
 ├── icons/
-│   └── index.jsx                    → SVG icons + tool mappings
+│   └── index.jsx               
 │
 ├── components/
 │
-│   ├── ui/                          → Basic reusable UI elements
+│   ├── ui/                          
 │   │   ├── Btn.jsx
 │   │   ├── Avatar.jsx
 │   │   └── Divider.jsx
 │   │
-│   ├── canvas/                      → Core drawing system
-│   │   ├── CanvasArea.jsx           → Main canvas engine
-│   │   ├── StickyNote.jsx           → Collaborative sticky notes
-│   │   ├── EmptyState.jsx           → Placeholder screen
-│   │   └── ZoomControls.jsx         → Zoom + undo/redo controls
+│   ├── canvas/                     
+│   │   ├── CanvasArea.jsx           
+│   │   ├── StickyNote.jsx           
+│   │   ├── EmptyState.jsx          
+│   │   └── ZoomControls.jsx         
 │   │
-│   ├── layout/                      → App structure & navigation
+│   ├── layout/                     
 │   │   ├── Navbar.jsx
 │   │   ├── NavBtn.jsx
 │   │   └── HamDrawer.jsx
 │   │
-│   ├── toolbar/                     → Drawing tools & settings
+│   ├── toolbar/                     
 │   │   ├── Toolbar.jsx
 │   │   ├── ColorPicker.jsx
 │   │   ├── StrokeMenu.jsx
@@ -70,7 +70,7 @@ src/
 │   │   ├── ShapeDropdown.jsx
 │   │   └── BgPicker.jsx
 │   │
-│   └── extras/                      → UI overlays & utilities
+│   └── extras/                     
 │       ├── Fonts.jsx
 │       ├── ArtDecor.jsx
 │       ├── IntroScreen.jsx
