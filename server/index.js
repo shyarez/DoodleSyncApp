@@ -102,7 +102,7 @@ io.on("connection", (socket) => {
     // Instantly feed new connection the authoritative canvas state
     socket.emit("init-canvas", { 
       strokes: room.strokes, 
-      stickies: Object.values(room.stickies || {}) 
+      stickies: Object.values(room.stickies || {})
     });
 
     console.log(`[joinRoom] ${name} joined ${roomId} (${room.users.length}/5)`);
@@ -210,10 +210,27 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("clearCanvas", () => {
-    // DO NOT broadcast globally. DO NOT modify room.strokes.
-    // User requested "LOCAL ONLY" behavior.
-    console.log(`[clearCanvas] Personal clear request from ${socket.id}`);
+  socket.on("clearCanvas", ({ userId }) => {
+    const room = getRoomForSocket(socket.id);
+    if (!room) return;
+
+    // Remove ONLY this user's strokes
+    room.strokes = room.strokes.filter(s => s.userId !== userId);
+
+    // Remove in-progress strokes
+    Object.keys(room.currentStrokes).forEach(key => {
+      if (room.currentStrokes[key].userId === userId) {
+        delete room.currentStrokes[key];
+      }
+    });
+
+    // Broadcast full updated state to ALL clients
+    io.to(room.roomId).emit("init-canvas", {
+      strokes: room.strokes,
+      stickies: Object.values(room.stickies || {})
+    });
+
+    console.log(`[clearCanvas] ${userId} cleared their strokes`);
   });
 
   // ── Sticky note operations ──
@@ -239,12 +256,14 @@ io.on("connection", (socket) => {
     socket.to(room.roomId).emit("stickyDelete", data);
   });
 
-  socket.on("stickyText", (data) => {
-    const room = getRoomForSocket(socket.id);
-    if (!room) return;
-    if (room.stickies[data.id]) room.stickies[data.id].text = data.text;
-    socket.to(room.roomId).emit("stickyText", data);
-  });
+socket.on("stickyText", (data) => {
+  const room = getRoomForSocket(socket.id);
+  if (!room) return;
+  if (room.stickies[data.id]) {
+    room.stickies[data.id].text = data.text;
+  }
+  socket.to(room.roomId).emit("stickyText", data);
+});
 
   socket.on("stickyColor", (data) => {
     const room = getRoomForSocket(socket.id);

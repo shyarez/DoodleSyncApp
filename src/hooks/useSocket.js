@@ -173,7 +173,11 @@ export function useSocket() {
 
   const emitUndo = useCallback(() => socketRef.current?.emit("undo"), []);
   const emitRedo = useCallback(() => socketRef.current?.emit("redo"), []);
-  const emitClear = useCallback(() => socketRef.current?.emit("clearCanvas"), []);
+  const emitClear = useCallback(() => {
+    socketRef.current?.emit("clearCanvas", {
+      userId: userRef.current.userId
+    });
+  }, []);
 
   const changeMode = useCallback((newMode) => {
     const s = socketRef.current;
@@ -205,10 +209,16 @@ export function useSocket() {
   }, [roomId]);
 
   const emitStickyText = useCallback((id, text) => {
-    const s = socketRef.current;
-    if (!s || !roomId) return;
-    s.emit("stickyText", { id, text });
-  }, [roomId]);
+  const s = socketRef.current;
+  if (!s || !roomId) return;
+
+  s.emit("stickyText", {
+    id,
+    text,
+    userId: userRef.current.userId,
+    ts: Date.now()
+  });
+}, [roomId]);
 
   const emitStickyColor = useCallback((id, color) => {
     const s = socketRef.current;

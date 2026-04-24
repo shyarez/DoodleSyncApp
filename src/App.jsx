@@ -103,7 +103,12 @@ export default function DoodleSync() {
 
   const addSticky = useCallback(({x,y}) => {
     const id = uid();
-    const newS = {id,x:x-84,y:y-50,w:180,h:140,text:"",color:STICKY_CYCLE[Math.floor(Math.random()*STICKY_CYCLE.length)],fresh:true};
+    const newS = {
+      id, x: x - 84, y: y - 50, w: 180, h: 140, text: "",
+      color: STICKY_CYCLE[Math.floor(Math.random() * STICKY_CYCLE.length)],
+      fresh: true,
+      creatorId: socket.user.userId
+    };
     setStickies(s=>[...s,newS]);
     socket.emitStickyAdd(newS);
   }, [socket]);
@@ -124,8 +129,8 @@ export default function DoodleSync() {
     socket.emitStickyDelete(id);
   }, [socket]);
   const textChangeSticky = useCallback((id,text) => {
-    setStickies(s=>s.map(n=>n.id===id?{...n,text,fresh:false}:n));
     socket.emitStickyText(id, text);
+    setStickies(s=>s.map(n=>n.id===id?{...n,text,fresh:false}:n));
   }, [socket]);
 
   // Session / modals
@@ -144,114 +149,132 @@ export default function DoodleSync() {
   const replayHistory = useCallback((canvas, strokes) => {
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    strokes.forEach(stroke => {
-      // Setup context for the stroke
-      ctx.save();
-      const tool = stroke.tool;
-      const conf = stroke; // config is on the stroke object itself
-      
-      if (tool === "eraser" && conf.eraserMode === "freehand") {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.lineWidth = conf.eraserSize || 20;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.globalAlpha = 1;
 
-        let lx = conf.x, ly = conf.y;
-        (conf.segments || []).forEach(seg => {
-          ctx.beginPath();
-          ctx.moveTo(lx, ly);
-          ctx.lineTo(seg.x, seg.y);
-          ctx.stroke();
-          lx = seg.x; ly = seg.y;
-        });
-      } 
-      else if (tool === "pencil") {
-        const pts = (conf.segments && conf.segments[0]) ? conf.segments[0].points : [];
-        if (pts && pts.length > 1) {
-          ctx.strokeStyle = conf.color;
-          ctx.lineWidth = conf.strokeWidth;
-          ctx.lineCap = "round";
-          ctx.globalAlpha = (conf.opacity / 100) * 0.7;
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-          ctx.stroke();
-          ctx.globalAlpha = (conf.opacity / 100) * 0.3;
-          ctx.lineWidth = conf.strokeWidth * 0.4;
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x + 0.8, pts[0].y - 0.5);
-          for (let i=1; i<pts.length; i++) {
-            ctx.lineTo(pts[i].x + (Math.random()-0.5), pts[i].y + (Math.random()-0.5));
-          }
-          ctx.stroke();
-        }
-      }
-      else if (conf.isShape) {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.lineWidth = conf.strokeWidth;
-        ctx.strokeStyle = conf.color;
-        ctx.lineCap = conf.lineCap || "round";
-        ctx.lineJoin = "round";
-        ctx.globalAlpha = conf.opacity / 100;
-        
-        const sx = conf.startX, sy = conf.startY, ex = conf.endX, ey = conf.endY;
-        ctx.beginPath();
-        if (tool === "rect") {
-          ctx.strokeRect(sx, sy, ex - sx, ey - sy);
-          if (conf.fillEnabled) {
-            ctx.globalAlpha = conf.fillOpacity / 100;
-            ctx.fillStyle = conf.fillColor;
-            ctx.fillRect(sx, sy, ex - sx, ey - sy);
-          }
-        } else if (tool === "ellipse") {
-          const rx = Math.abs(ex - sx) / 2, ry = Math.abs(ey - sy) / 2;
-          const cx2 = sx + (ex - sx) / 2, cy2 = sy + (ey - sy) / 2;
-          ctx.ellipse(cx2, cy2, rx, ry, 0, 0, 2 * Math.PI); ctx.stroke();
-          if (conf.fillEnabled) {
-            ctx.globalAlpha = conf.fillOpacity / 100;
-            ctx.fillStyle = conf.fillColor;
-            ctx.beginPath(); ctx.ellipse(cx2, cy2, rx, ry, 0, 0, 2 * Math.PI); ctx.fill();
-          }
-        } else if (tool === "line") {
-          ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-        } else if (tool === "arrow") {
-          ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-        }
-      }
-      else if (tool === "pen") {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.lineWidth = conf.strokeWidth;
-        ctx.strokeStyle = conf.color;
-        ctx.lineCap = conf.lineCap || "round";
-        ctx.lineJoin = "round";
-        ctx.globalAlpha = conf.opacity / 100;
+    // Create a temporary canvas for per-user rendering to support selective erasing
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
 
-        let lx = conf.x, ly = conf.y;
-        (conf.segments || []).forEach(seg => {
-          ctx.beginPath();
-          ctx.moveTo(lx, ly);
-          ctx.lineTo(seg.x, seg.y);
-          ctx.stroke();
-          lx = seg.x; ly = seg.y;
-        });
+    // Group strokes by userId to process them in "layers"
+    const userIds = [];
+    const strokesByUser = {};
+    strokes.forEach(s => {
+      const uid = s.userId || "anonymous";
+      if (!strokesByUser[uid]) {
+        strokesByUser[uid] = [];
+        userIds.push(uid); // Preserves order of user appearance
       }
-      ctx.restore();
+      strokesByUser[uid].push(s);
+    });
+
+    userIds.forEach(uid => {
+      tctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+      const userStrokes = strokesByUser[uid];
+
+      userStrokes.forEach(stroke => {
+        tctx.save();
+        const tool = stroke.tool;
+        const conf = stroke;
+
+        if (tool === "eraser" && conf.eraserMode === "freehand") {
+          tctx.globalCompositeOperation = "destination-out";
+          tctx.lineWidth = conf.eraserSize || 20;
+          tctx.lineCap = "round";
+          tctx.lineJoin = "round";
+          tctx.globalAlpha = 1;
+
+          let lx = conf.x, ly = conf.y;
+          (conf.segments || []).forEach(seg => {
+            tctx.beginPath();
+            tctx.moveTo(lx, ly);
+            tctx.lineTo(seg.x, seg.y);
+            tctx.stroke();
+            lx = seg.x; ly = seg.y;
+          });
+        } 
+        else if (tool === "pencil") {
+          const pts = (conf.segments && conf.segments[0]) ? conf.segments[0].points : [];
+          if (pts && pts.length > 1) {
+            tctx.strokeStyle = conf.color;
+            tctx.lineWidth = conf.strokeWidth;
+            tctx.lineCap = "round";
+            tctx.globalAlpha = (conf.opacity / 100) * 0.7;
+            tctx.beginPath();
+            tctx.moveTo(pts[0].x, pts[0].y);
+            for (let i=1; i<pts.length; i++) tctx.lineTo(pts[i].x, pts[i].y);
+            tctx.stroke();
+            tctx.globalAlpha = (conf.opacity / 100) * 0.3;
+            tctx.lineWidth = conf.strokeWidth * 0.4;
+            tctx.beginPath();
+            tctx.moveTo(pts[0].x + 0.8, pts[0].y - 0.5);
+            for (let i=1; i<pts.length; i++) {
+              tctx.lineTo(pts[i].x + (Math.random()-0.5), pts[i].y + (Math.random()-0.5));
+            }
+            tctx.stroke();
+          }
+        }
+        else if (conf.isShape) {
+          tctx.globalCompositeOperation = "source-over";
+          tctx.lineWidth = conf.strokeWidth;
+          tctx.strokeStyle = conf.color;
+          tctx.lineCap = conf.lineCap || "round";
+          tctx.lineJoin = "round";
+          tctx.globalAlpha = conf.opacity / 100;
+          
+          const sx = conf.startX, sy = conf.startY, ex = conf.endX, ey = conf.endY;
+          tctx.beginPath();
+          if (tool === "rect") {
+            tctx.strokeRect(sx, sy, ex - sx, ey - sy);
+            if (conf.fillEnabled) {
+              tctx.globalAlpha = conf.fillOpacity / 100;
+              tctx.fillStyle = conf.fillColor;
+              tctx.fillRect(sx, sy, ex - sx, ey - sy);
+            }
+          } else if (tool === "ellipse") {
+            const rx = Math.abs(ex - sx) / 2, ry = Math.abs(ey - sy) / 2;
+            const cx2 = sx + (ex - sx) / 2, cy2 = sy + (ey - sy) / 2;
+            tctx.ellipse(cx2, cy2, rx, ry, 0, 0, 2 * Math.PI); tctx.stroke();
+            if (conf.fillEnabled) {
+              tctx.globalAlpha = conf.fillOpacity / 100;
+              tctx.fillStyle = conf.fillColor;
+              tctx.beginPath(); tctx.ellipse(cx2, cy2, rx, ry, 0, 0, 2 * Math.PI); tctx.fill();
+            }
+          } else if (tool === "line") {
+            tctx.moveTo(sx, sy); tctx.lineTo(ex, ey); tctx.stroke();
+          } else if (tool === "arrow") {
+            tctx.moveTo(sx, sy); tctx.lineTo(ex, ey); tctx.stroke();
+          }
+        }
+        else if (tool === "pen") {
+          tctx.globalCompositeOperation = "source-over";
+          tctx.lineWidth = conf.strokeWidth;
+          tctx.strokeStyle = conf.color;
+          tctx.lineCap = conf.lineCap || "round";
+          tctx.lineJoin = "round";
+          tctx.globalAlpha = conf.opacity / 100;
+
+          let lx = conf.x, ly = conf.y;
+          (conf.segments || []).forEach(seg => {
+            tctx.beginPath();
+            tctx.moveTo(lx, ly);
+            tctx.lineTo(seg.x, seg.y);
+            tctx.stroke();
+            lx = seg.x; ly = seg.y;
+          });
+        }
+        tctx.restore();
+      });
+
+      // Composite the user's layer onto the main canvas
+      ctx.drawImage(tempCanvas, 0, 0);
     });
   }, []);
 
   const handleClearReq = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const othersStrokes = allStrokes.current.filter(s => s.userId !== socket.user.userId);
-      replayHistory(canvas, othersStrokes);
-    }
-    setStickies(s => s.filter(n => n.fresh === false));
     socket.emitClear();
     setShowClear(false);
-  }, [socket, replayHistory]);
+  }, [socket]);
 
   // ─── Socket Event Listeners (Stable) ───
   useEffect(() => {
@@ -260,7 +283,16 @@ export default function DoodleSync() {
       onAdd: (data) => setStickies(s => [...s, data]),
       onMove: (data) => setStickies(s => s.map(n => n.id === data.id ? { ...n, ...data } : n)),
       onDelete: (data) => setStickies(s => s.filter(n => n.id !== data.id)),
-      onText: (data) => setStickies(s => s.map(n => n.id === data.id ? { ...n, text: data.text, fresh: false } : n)),
+      onText: (data) => {
+        setStickies(prev => {
+        const updated = prev.map(n =>
+          n.id === data.id
+            ? { ...n, text: data.text, fresh: false }
+            : n
+        );
+    return [...updated]; // 🔥 force re-render
+  });
+},
       onColor: (data) => setStickies(s => s.map(n => n.id === data.id ? { ...n, color: data.color } : n)),
     });
 
@@ -278,11 +310,7 @@ export default function DoodleSync() {
 
     // 3. User Actions (Undo/Clear)
     socket.onRemoteAction({
-      onClear: () => {
-        const c = canvasRef.current;
-        if (c) c.getContext("2d", { willReadFrequently: true }).clearRect(0,0,c.width,c.height);
-        setStickies([]);
-      }
+      // Clear is now handled by onRemoteStateSync (init-canvas)
     });
 
     // 4. Stroke Lifecycle (Incremental)
@@ -324,7 +352,7 @@ export default function DoodleSync() {
     <div style={{ width:"100vw", height:"100vh", background:"var(--bg)", overflow:"hidden", position:"relative", display: "flex", flexDirection: "column" }}>
       <Fonts/>
       {showIntro && <IntroScreen onDone={() => setShowIntro(false)}/>}
-      <ArtDecor dark={dark}/>
+      {!socket.connected && <ArtDecor dark={dark} />}
       <Navbar
         socket={socket}
         onHamburger={() => setDrawerOpen(true)}

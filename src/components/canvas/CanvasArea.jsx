@@ -594,9 +594,10 @@ export const CanvasArea = ({ activeTool, color, strokeWidth, opacity, lineCap, e
     const resize = () => {
       const parent = canvas.parentElement;
       const W = parent.clientWidth, H = parent.clientHeight;
-      const imgData = canvas.width>0 ? canvas.getContext("2d", { willReadFrequently: true }).getImageData(0,0,canvas.width,canvas.height) : null;
-      canvas.width = W; canvas.height = H;
-      if (imgData) canvas.getContext("2d", { willReadFrequently: true }).putImageData(imgData,0,0);
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       const ov = overlayRef.current;
       if (ov) { ov.width=W; ov.height=H; }
     };
@@ -604,19 +605,25 @@ export const CanvasArea = ({ activeTool, color, strokeWidth, opacity, lineCap, e
     return () => ro.disconnect();
   }, [canvasRef]);
 
+  useEffect(() => {
+  const canvas = canvasRef.current;
+  const overlay = overlayRef.current;
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (overlay) {
+    const octx = overlay.getContext("2d");
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+  }
+}, []);
+
   return (
     <div style={{ position:"fixed", inset:0, paddingTop:104, overflow:"hidden" }}>
       <div style={{ position:"relative", width:"100%", height:"100%", overflow:"hidden",
-          background: canvasBg || "var(--canvas-bg)" }}>
-        {/* Dot grid */}
-        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",zIndex:1,pointerEvents:"none"}} xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width={26*zoom} height={26*zoom} patternUnits="userSpaceOnUse" x={pan.x%(26*zoom)} y={pan.y%(26*zoom)}>
-              <circle cx={13*zoom} cy={13*zoom} r="1" fill="var(--dot)" fillOpacity="1"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)"/>
-        </svg>
+          background: canvasBg || "#ffffff" }}>
+       
         {/* Canvas with zoom/pan */}
         <div style={{ position:"absolute", inset:0, transformOrigin:"0 0", transform:`scale(${zoom}) translate(${pan.x/zoom}px,${pan.y/zoom}px)` }}>
           <canvas ref={canvasRef} style={{ position:"absolute", inset:0, width:"100%", height:"100%", cursor:getCursor(), zIndex:2 }}
@@ -626,7 +633,7 @@ export const CanvasArea = ({ activeTool, color, strokeWidth, opacity, lineCap, e
             onTouchStart={startDraw} onTouchMove={drawMove} onTouchEnd={endDraw}/>
           <canvas ref={overlayRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:3}}/>
           {stickies.map(n=>(
-            <StickyNote key={n.id} note={n} onMove={onMoveSticky} onResize={onResizeSticky} onChangeColor={onChangeColorSticky} onDelete={onDeleteSticky} onTextChange={onTextChangeSticky}/>
+            <StickyNote key={n.id} note={n} user={user} onMove={onMoveSticky} onResize={onResizeSticky} onChangeColor={onChangeColorSticky} onDelete={onDeleteSticky} onTextChange={onTextChangeSticky}/>
           ))}
         </div>
         {/* Custom cursors */}
