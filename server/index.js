@@ -67,7 +67,9 @@ io.on("connection", (socket) => {
       mode: "shared",
       strokes: [],
       currentStrokes: {},
-      stickies: {}
+      stickies: {},
+      history: [],    // undo stack — each entry is JSON.stringify(strokes)
+      redoStack: []   // redo stack
     };
     rooms.set(roomId, room);
     socket.join(roomId);
@@ -149,15 +151,14 @@ io.on("connection", (socket) => {
     const userId = data.userId || room.users.find(u => u.id === socket.id)?.userId;
     if (!userId) return;
 
-    // Initialize stroke tracking
     room.currentStrokes[data.strokeId] = {
       ...data,
       userId,
-      segments: []
+      segments: [] // only pen/pencil use segments; shapes use stroke:end directly
     };
 
     socket.to(room.roomId).emit("stroke:start", { ...data, userId });
-    console.log(`[stroke:start] ${data.strokeId} by ${userId}`);
+    console.log(`[stroke:start] ${data.strokeId} tool=${data.tool} by ${userId}`);
   });
 
   socket.on("stroke:update", (data) => {
@@ -176,16 +177,168 @@ io.on("connection", (socket) => {
     const room = getRoomForSocket(socket.id);
     if (!room) return;
 
+    // Shapes: treat as final objects, push directly and broadcast full state
+    if (data.isShape) {
+      const userId = data.userId || room.users.find(u => u.id === socket.id)?.userId;
+      if (!userId) return;
+      // Snapshot before mutation
+      room.history.push(JSON.stringify(room.strokes));
+      if (room.history.length > 50) room.history.shift();
+      room.redoStack = [];
+      room.strokes.push({ ...data, userId });
+      delete room.currentStrokes[data.strokeId];
+      io.to(room.roomId).emit("init-canvas", {
+        strokes: room.strokes,
+        stickies: Object.values(room.stickies || {})
+      });
+      console.log(`[stroke:end/shape] ${data.strokeId}`);
+      return;
+    }
+
     const stroke = room.currentStrokes[data.strokeId];
     if (stroke) {
+      // Guarantee userId is always set on every stored stroke
+      if (!stroke.userId) {
+        stroke.userId = data.userId || room.users.find(u => u.id === socket.id)?.userId;
+      }
+      // Snapshot before mutation
+      room.history.push(JSON.stringify(room.strokes));
+      if (room.history.length > 50) room.history.shift();
+      room.redoStack = [];
       room.strokes.push(stroke);
       delete room.currentStrokes[data.strokeId];
-      // Broadcast the FULL stroke object so followers can store it
-      socket.to(room.roomId).emit("stroke:end", { ...data, fullStroke: stroke });
+      // Broadcast full state to ensure everyone is synced to the authoritative version
+      io.to(room.roomId).emit("init-canvas", {
+        strokes: room.strokes,
+        stickies: Object.values(room.stickies || {})
+      });
     } else {
       socket.to(room.roomId).emit("stroke:end", data);
     }
     console.log(`[stroke:end] ${data.strokeId}`);
+  });
+
+  // ── Erase event (path/region based) ──
+  socket.on("erase", (data) => {
+    const room = getRoomForSocket(socket.id);
+    if (!room) return;
+    const { mode } = data;
+    const THRESHOLD = 14;
+
+    // Helper: collect all points from a stroke
+    function strokePoints(stroke) {
+      const pts = [];
+      if (stroke.x !== undefined) pts.push({ x: stroke.x, y: stroke.y });
+      (stroke.segments || []).forEach(seg => {
+        if (seg.x !== undefined) pts.push({ x: seg.x, y: seg.y });
+        if (seg.points) seg.points.forEach(p => pts.push(p));
+      });
+      if (stroke.startX !== undefined) pts.push({ x: stroke.startX, y: stroke.startY });
+      if (stroke.endX !== undefined) pts.push({ x: stroke.endX, y: stroke.endY });
+      return pts;
+    }
+
+    // Helper: point-in-polygon (ray casting)
+    function pointInPolygon(px, py, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
+        if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    }
+
+    const before = JSON.stringify(room.strokes);
+
+    const filtered = room.strokes.filter(stroke => {
+      const pts = strokePoints(stroke);
+      if (pts.length === 0) return true;
+
+      // Add intermediate points along shape edges
+      const allPts = [...pts];
+      if (stroke.isShape && stroke.startX !== undefined && stroke.endX !== undefined) {
+        for (let i = 1; i < 20; i++) {
+          const t = i / 20;
+          allPts.push({
+            x: stroke.startX + (stroke.endX - stroke.startX) * t,
+            y: stroke.startY + (stroke.endY - stroke.startY) * t
+          });
+        }
+      }
+
+      if (mode === "freehand") {
+        const path = data.path || [];
+        for (const ep of path) {
+          for (const sp of allPts) {
+            if (Math.hypot(sp.x - ep.x, sp.y - ep.y) < THRESHOLD) return false;
+          }
+        }
+      } else if (mode === "lasso") {
+        const poly = data.polygon || [];
+        if (poly.length < 3) return true;
+        for (const sp of allPts) {
+          if (pointInPolygon(sp.x, sp.y, poly)) return false;
+        }
+      } else if (mode === "rect") {
+        const r = data.rect;
+        if (!r) return true;
+        const minX = Math.min(r.x, r.x + r.w), maxX = Math.max(r.x, r.x + r.w);
+        const minY = Math.min(r.y, r.y + r.h), maxY = Math.max(r.y, r.y + r.h);
+        for (const sp of allPts) {
+          if (sp.x >= minX && sp.x <= maxX && sp.y >= minY && sp.y <= maxY) return false;
+        }
+      }
+      return true;
+    });
+
+    if (JSON.stringify(filtered) !== before) {
+      room.history.push(before);
+      if (room.history.length > 50) room.history.shift();
+      room.redoStack = [];
+      room.strokes = filtered;
+    }
+
+    io.to(room.roomId).emit("init-canvas", {
+      strokes: room.strokes,
+      stickies: Object.values(room.stickies || {})
+    });
+    console.log(`[erase/${mode}]`);
+  });
+
+  // ── Segment-level erase (real-time) ──
+  socket.on("eraseSegment", ({ strokeId, userId, x, y, radius }) => {
+    const room = getRoomForSocket(socket.id);
+    if (!room) return;
+
+    let changed = false;
+    // NOTE: We do NOT snapshot history here because it fires 60fps and would kill performance.
+    // History is snapshotted in the batch 'erase' event on mouseup.
+    room.strokes = room.strokes.map(stroke => {
+      const prevLen = (stroke.segments || []).length;
+      stroke.segments = (stroke.segments || []).filter(pt => {
+        const dx = (pt.x ?? 0) - x;
+        const dy = (pt.y ?? 0) - y;
+        return Math.sqrt(dx * dx + dy * dy) > radius;
+      });
+      if (stroke.segments.length !== prevLen) changed = true;
+      return stroke;
+    });
+
+    if (changed) {
+      // Clear redo since state changed
+      room.redoStack = [];
+      io.to(room.roomId).emit("init-canvas", {
+        strokes: room.strokes,
+        stickies: Object.values(room.stickies || {})
+      });
+    }
+  });
+
+  // ── Pan sync ──
+  socket.on("panMove", (data) => {
+    const room = getRoomForSocket(socket.id);
+    if (!room) return;
+    socket.to(room.roomId).emit("panMove", data);
   });
 
   socket.on("requestCanvasState", () => {
@@ -197,40 +350,45 @@ io.on("connection", (socket) => {
     });
   });
 
-  // ── Shared Actions ──
+  // ── Undo ──
   socket.on("undo", () => {
     const room = getRoomForSocket(socket.id);
-    if (room) {
-      room.strokes.pop(); // Remove the last authoritative stroke globally
-      // Force all clients to redraw the new correct state
-      io.to(room.roomId).emit("init-canvas", {
-        strokes: room.strokes,
-        stickies: Object.values(room.stickies || {})
-      });
-    }
-  });
-
-  socket.on("clearCanvas", ({ userId }) => {
-    const room = getRoomForSocket(socket.id);
-    if (!room) return;
-
-    // Remove ONLY this user's strokes
-    room.strokes = room.strokes.filter(s => s.userId !== userId);
-
-    // Remove in-progress strokes
-    Object.keys(room.currentStrokes).forEach(key => {
-      if (room.currentStrokes[key].userId === userId) {
-        delete room.currentStrokes[key];
-      }
-    });
-
-    // Broadcast full updated state to ALL clients
+    if (!room || room.history.length === 0) return;
+    room.redoStack.push(JSON.stringify(room.strokes));
+    room.strokes = JSON.parse(room.history.pop());
     io.to(room.roomId).emit("init-canvas", {
       strokes: room.strokes,
       stickies: Object.values(room.stickies || {})
     });
+  });
 
-    console.log(`[clearCanvas] ${userId} cleared their strokes`);
+  // ── Redo ──
+  socket.on("redo", () => {
+    const room = getRoomForSocket(socket.id);
+    if (!room || room.redoStack.length === 0) return;
+    room.history.push(JSON.stringify(room.strokes));
+    room.strokes = JSON.parse(room.redoStack.pop());
+    io.to(room.roomId).emit("init-canvas", {
+      strokes: room.strokes,
+      stickies: Object.values(room.stickies || {})
+    });
+  });
+
+  socket.on("clearCanvas", () => {
+    const room = getRoomForSocket(socket.id);
+    if (!room) return;
+
+    room.history.push(JSON.stringify(room.strokes));
+    if (room.history.length > 50) room.history.shift();
+    room.redoStack = [];
+    room.strokes = [];
+    room.currentStrokes = {};
+
+    io.to(room.roomId).emit("init-canvas", {
+      strokes: [],
+      stickies: Object.values(room.stickies || {})
+    });
+    console.log(`[clearCanvas] room cleared`);
   });
 
   // ── Sticky note operations ──

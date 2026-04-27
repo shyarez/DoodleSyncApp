@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { STICKY_CYCLE } from "./data/constants.js";
+import { ARROW_STYLES, STICKY_CYCLE } from "./data/constants.js";
 
 // Layout
 import { Navbar }     from "./components/layout/Navbar.jsx";
@@ -73,8 +73,11 @@ export default function DoodleSync() {
   const onPanMove = useCallback(e => {
     if (!panStart.current || (socket.mode === "split" && socket.connected)) return;
     const cl = e.touches ? e.touches[0] : e;
-    setPan({ x:panStart.current.px+(cl.clientX-panStart.current.mx), y:panStart.current.py+(cl.clientY-panStart.current.my) });
-  }, [socket.mode, socket.connected]);
+    const nx = panStart.current.px+(cl.clientX-panStart.current.mx);
+    const ny = panStart.current.py+(cl.clientY-panStart.current.my);
+    setPan({ x: nx, y: ny });
+    socket.emitPanMove?.(nx, ny);
+  }, [socket, socket.mode, socket.connected]);
   const onPanEnd = useCallback(() => { panStart.current = null; }, []);
 
   // Wheel zoom
@@ -133,17 +136,43 @@ export default function DoodleSync() {
     setStickies(s=>s.map(n=>n.id===id?{...n,text,fresh:false}:n));
   }, [socket]);
 
-  // Session / modals
-  const [drawerOpen, setDrawerOpen]   = useState(false);
-  const [showClear, setShowClear]     = useState(false);
-  const [showExport, setShowExport]   = useState(false);
-
   // Canvas ref + history
   const canvasRef    = useRef(null);
   const allStrokes   = useRef([]);
 
   const handleUndo = useCallback(() => { socket.emitUndo(); }, [socket]);
   const handleRedo = useCallback(() => { socket.emitRedo(); }, [socket]);
+
+  // Session / modals
+  const [drawerOpen, setDrawerOpen]   = useState(false);
+  const [showClear, setShowClear]     = useState(false);
+  const [showExport, setShowExport]   = useState(false);
+
+  // Keyboard shortcuts (Global Undo/Redo + Tools)
+  useEffect(() => {
+    const toolMap  = { h:"hand", p:"pen", k:"pencil", s:"shape", n:"sticky", e:"eraser",
+                       r:"shape",  o:"shape", l:"shape", a:"shape" };
+    const shapeMap = { r:"rect", o:"ellipse", l:"line", a:"arrow" };
+    const handleKeyDown = (e) => {
+      if (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.contentEditable==="true") return;
+
+      if (e.ctrlKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.ctrlKey && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      } else if ((e.ctrlKey||e.metaKey) && e.key==="e") {
+        e.preventDefault();
+        setShowExport(true);
+      } else if (toolMap[e.key]) {
+        setActiveTool(toolMap[e.key]);
+        if (shapeMap[e.key]) setActiveShape(shapeMap[e.key]);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   // Fast-forward canvas rendering
   const replayHistory = useCallback((canvas, strokes) => {
@@ -177,40 +206,50 @@ export default function DoodleSync() {
         const tool = stroke.tool;
         const conf = stroke;
 
-        if (tool === "eraser" && conf.eraserMode === "freehand") {
-          tctx.globalCompositeOperation = "destination-out";
-          tctx.lineWidth = conf.eraserSize || 20;
+        // Eraser strokes are never stored in room.strokes (removed by server on erase events)
+        if (tool === "eraser") {
+          tctx.restore();
+          return;
+        }
+        else if (tool === "pen" || tool === "pencil") {
+          // Aggregate all points from the start and all subsequent segments
+          const pts = [];
+          if (conf.x !== undefined) pts.push({ x: conf.x, y: conf.y });
+          (conf.segments || []).forEach(seg => {
+            if (seg.points) pts.push(...seg.points);
+            else if (seg.x !== undefined) pts.push({ x: seg.x, y: seg.y });
+          });
+
+          if (pts.length < 2) { tctx.restore(); return; }
+
+          tctx.strokeStyle = conf.color;
+          tctx.lineWidth = conf.strokeWidth;
           tctx.lineCap = "round";
           tctx.lineJoin = "round";
-          tctx.globalAlpha = 1;
+          tctx.globalAlpha = conf.opacity / 100;
 
-          let lx = conf.x, ly = conf.y;
-          (conf.segments || []).forEach(seg => {
-            tctx.beginPath();
-            tctx.moveTo(lx, ly);
-            tctx.lineTo(seg.x, seg.y);
-            tctx.stroke();
-            lx = seg.x; ly = seg.y;
-          });
-        } 
-        else if (tool === "pencil") {
-          const pts = (conf.segments && conf.segments[0]) ? conf.segments[0].points : [];
-          if (pts && pts.length > 1) {
-            tctx.strokeStyle = conf.color;
-            tctx.lineWidth = conf.strokeWidth;
-            tctx.lineCap = "round";
+          if (tool === "pencil") {
+            // Pencil sketch effect: two passes
             tctx.globalAlpha = (conf.opacity / 100) * 0.7;
+            tctx.lineWidth = conf.strokeWidth * 0.7;
             tctx.beginPath();
             tctx.moveTo(pts[0].x, pts[0].y);
-            for (let i=1; i<pts.length; i++) tctx.lineTo(pts[i].x, pts[i].y);
+            for (let i = 1; i < pts.length; i++) tctx.lineTo(pts[i].x, pts[i].y);
             tctx.stroke();
+
             tctx.globalAlpha = (conf.opacity / 100) * 0.3;
             tctx.lineWidth = conf.strokeWidth * 0.4;
             tctx.beginPath();
             tctx.moveTo(pts[0].x + 0.8, pts[0].y - 0.5);
-            for (let i=1; i<pts.length; i++) {
-              tctx.lineTo(pts[i].x + (Math.random()-0.5), pts[i].y + (Math.random()-0.5));
+            for (let i = 1; i < pts.length; i++) {
+              tctx.lineTo(pts[i].x + (Math.random() - 0.5), pts[i].y + (Math.random() - 0.5));
             }
+            tctx.stroke();
+          } else {
+            // Pen: solid line
+            tctx.beginPath();
+            tctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) tctx.lineTo(pts[i].x, pts[i].y);
             tctx.stroke();
           }
         }
@@ -243,25 +282,38 @@ export default function DoodleSync() {
           } else if (tool === "line") {
             tctx.moveTo(sx, sy); tctx.lineTo(ex, ey); tctx.stroke();
           } else if (tool === "arrow") {
-            tctx.moveTo(sx, sy); tctx.lineTo(ex, ey); tctx.stroke();
+            const style = ARROW_STYLES.find(s => s.id === conf.arrowStyle) || ARROW_STYLES[0];
+            tctx.setLineDash(style.dash.length ? style.dash : []);
+            
+            if (conf.arrowStyle === "curved") {
+              const mx = (sx+ex)/2, my = (sy+ey)/2;
+              const dx = ex-sx, dy = ey-sy;
+              const len = Math.sqrt(dx*dx+dy*dy) || 1;
+              const cpx = mx - dy/len * len*0.25, cpy = my + dx/len * len*0.25;
+              tctx.beginPath(); tctx.moveTo(sx, sy); tctx.quadraticCurveTo(cpx, cpy, ex, ey); tctx.stroke();
+              const t = 0.98;
+              const tx = 2*(1-t)*(cpx-sx)+2*t*(ex-cpx);
+              const ty = 2*(1-t)*(cpy-sy)+2*t*(ey-cpy);
+              const angle = Math.atan2(ty, tx), hw = 13;
+              tctx.setLineDash([]);
+              tctx.beginPath();
+              tctx.moveTo(ex-hw*Math.cos(angle-Math.PI/7), ey-hw*Math.sin(angle-Math.PI/7));
+              tctx.lineTo(ex, ey);
+              tctx.lineTo(ex-hw*Math.cos(angle+Math.PI/7), ey-hw*Math.sin(angle+Math.PI/7));
+              tctx.stroke();
+            } else {
+              // Straight arrow (solid, dashed, or dotted)
+              tctx.beginPath();
+              tctx.moveTo(sx, sy); tctx.lineTo(ex, ey); tctx.stroke();
+              const a = Math.atan2(ey - sy, ex - sx), hw = 13;
+              tctx.setLineDash([]);
+              tctx.beginPath();
+              tctx.moveTo(ex - hw*Math.cos(a - Math.PI/7), ey - hw*Math.sin(a - Math.PI/7));
+              tctx.lineTo(ex, ey);
+              tctx.lineTo(ex - hw*Math.cos(a + Math.PI/7), ey - hw*Math.sin(a + Math.PI/7));
+              tctx.stroke();
+            }
           }
-        }
-        else if (tool === "pen") {
-          tctx.globalCompositeOperation = "source-over";
-          tctx.lineWidth = conf.strokeWidth;
-          tctx.strokeStyle = conf.color;
-          tctx.lineCap = conf.lineCap || "round";
-          tctx.lineJoin = "round";
-          tctx.globalAlpha = conf.opacity / 100;
-
-          let lx = conf.x, ly = conf.y;
-          (conf.segments || []).forEach(seg => {
-            tctx.beginPath();
-            tctx.moveTo(lx, ly);
-            tctx.lineTo(seg.x, seg.y);
-            tctx.stroke();
-            lx = seg.x; ly = seg.y;
-          });
         }
         tctx.restore();
       });
@@ -308,38 +360,21 @@ export default function DoodleSync() {
       }
     });
 
+    // 3. Pan Sync
+    socket.onRemotePanMove?.((data) => {
+      setPan({ x: data.x, y: data.y });
+    });
+
     // 3. User Actions (Undo/Clear)
     socket.onRemoteAction({
       // Clear is now handled by onRemoteStateSync (init-canvas)
     });
 
-    // 4. Stroke Lifecycle (Incremental)
-    socket.onRemoteStrokeEnd((data) => {
-      if (data.fullStroke) {
-        allStrokes.current.push(data.fullStroke);
-      }
-    });
+    // 4. Stroke Lifecycle (Incremental) - Now handled primarily by init-canvas for final states
 
   }, [socket, replayHistory]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const toolMap  = { h:"hand", p:"pen", k:"pencil", s:"shape", n:"sticky", e:"eraser",
-                       r:"shape",  o:"shape", l:"shape", a:"shape" };
-    const shapeMap = { r:"rect", o:"ellipse", l:"line", a:"arrow" };
-    const handler = e => {
-      if (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.contentEditable==="true") return;
-      if ((e.ctrlKey||e.metaKey) && e.key==="z") { e.preventDefault(); handleUndo(); return; }
-      if ((e.ctrlKey||e.metaKey) && (e.key==="y"||e.key==="Y")) { e.preventDefault(); handleRedo(); return; }
-      if ((e.ctrlKey||e.metaKey) && e.key==="e") { e.preventDefault(); setShowExport(true); return; }
-      if (toolMap[e.key]) {
-        setActiveTool(toolMap[e.key]);
-        if (shapeMap[e.key]) setActiveShape(shapeMap[e.key]);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleUndo, handleRedo]);
+  // Sync canvas bg with dark mode
 
 
 
@@ -378,6 +413,9 @@ export default function DoodleSync() {
             emitStrokeStart={socket.emitStrokeStart}
             emitStrokeUpdate={socket.emitStrokeUpdate}
             emitStrokeEnd={socket.emitStrokeEnd}
+            emitErase={socket.emitErase}
+            emitEraseSegment={socket.emitEraseSegment}
+            emitPanMove={socket.emitPanMove}
             onRemoteStrokeStart={socket.onRemoteStrokeStart}
             onRemoteStrokeUpdate={socket.onRemoteStrokeUpdate}
             onRemoteStrokeEnd={socket.onRemoteStrokeEnd}

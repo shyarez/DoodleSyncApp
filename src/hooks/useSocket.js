@@ -36,6 +36,7 @@ export function useSocket() {
   const redoCallbackRef = useRef(null);
   const clearCallbackRef = useRef(null);
   const initCanvasCallbackRef = useRef(null);
+  const panMoveCallbackRef = useRef(null);
 
   // Throttle ref for draw events
   const lastEmitTime = useRef(0);
@@ -116,6 +117,10 @@ export function useSocket() {
       if (initCanvasCallbackRef.current) initCanvasCallbackRef.current(data);
     });
 
+    socket.on("panMove", (data) => {
+      if (panMoveCallbackRef.current) panMoveCallbackRef.current(data);
+    });
+
     // Sticky events
     socket.on("stickyAdd", (data) => stickyCallbacksRef.current.onAdd?.(data));
     socket.on("stickyMove", (data) => stickyCallbacksRef.current.onMove?.(data));
@@ -179,6 +184,25 @@ export function useSocket() {
     });
   }, []);
 
+  // emitErase: send full erase geometry (freehand path, lasso polygon, or rect)
+  const emitErase = useCallback((payload) => {
+    const s = socketRef.current;
+    if (!s || !roomId) return;
+    s.emit("erase", { ...payload, userId: userRef.current.userId });
+  }, [roomId]);
+
+  const emitEraseSegment = useCallback((x, y, radius) => {
+    const s = socketRef.current;
+    if (!s || !roomId) return;
+    s.emit("eraseSegment", { x, y, radius, userId: userRef.current.userId });
+  }, [roomId]);
+
+  const emitPanMove = useCallback((x, y) => {
+    const s = socketRef.current;
+    if (!s || !roomId) return;
+    s.emit("panMove", { x, y });
+  }, [roomId]);
+
   const changeMode = useCallback((newMode) => {
     const s = socketRef.current;
     if (!s || !roomId) return;
@@ -241,20 +265,24 @@ export function useSocket() {
     initCanvasCallbackRef.current = cb;
   }, []);
 
+  const onRemotePanMove = useCallback((cb) => {
+    panMoveCallbackRef.current = cb;
+  }, []);
+
   return useMemo(() => ({
     connected, roomId, users, isHost, mode, error,
     user: userRef.current,
     createRoom, joinRoom, leaveRoom,
-    emitStrokeStart, emitStrokeUpdate, emitStrokeEnd, changeMode,
+    emitStrokeStart, emitStrokeUpdate, emitStrokeEnd, emitErase, emitEraseSegment, emitPanMove, changeMode,
     emitStickyAdd, emitStickyMove, emitStickyDelete, emitStickyText, emitStickyColor,
     emitUndo, emitRedo, emitClear, forceSync,
-    onRemoteStrokeStart, onRemoteStrokeUpdate, onRemoteStrokeEnd, onRemoteSticky, onRemoteAction, onRemoteStateSync,
+    onRemoteStrokeStart, onRemoteStrokeUpdate, onRemoteStrokeEnd, onRemoteSticky, onRemoteAction, onRemoteStateSync, onRemotePanMove,
   }), [
     connected, roomId, users, isHost, mode, error,
     createRoom, joinRoom, leaveRoom,
-    emitStrokeStart, emitStrokeUpdate, emitStrokeEnd, changeMode,
+    emitStrokeStart, emitStrokeUpdate, emitStrokeEnd, emitErase, emitEraseSegment, emitPanMove, changeMode,
     emitStickyAdd, emitStickyMove, emitStickyDelete, emitStickyText, emitStickyColor,
     emitUndo, emitRedo, emitClear, forceSync,
-    onRemoteStrokeStart, onRemoteStrokeUpdate, onRemoteStrokeEnd, onRemoteSticky, onRemoteAction, onRemoteStateSync
+    onRemoteStrokeStart, onRemoteStrokeUpdate, onRemoteStrokeEnd, onRemoteSticky, onRemoteAction, onRemoteStateSync, onRemotePanMove
   ]);
 }
